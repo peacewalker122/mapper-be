@@ -26,6 +26,25 @@ go vet ./...
 go test ./...
 ```
 
+## Releases
+
+Push a semver tag to publish a version:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The tag starts the release workflow; tests and vet must pass before its
+GitHub Release is created. Consumers select tagged module versions directly:
+
+```bash
+go get github.com/peacewalker122/mapper@v0.1.0
+```
+
+Go's default module proxy serves public semver tags (falling back to the
+source as configured by `GOPROXY`), so no separate registry upload is needed.
+
 Split from the [mapper](https://github.com/peacewalker122/mapper) monorepo.
 Schemas are produced by
 [mapper-compiler](https://github.com/peacewalker122/mapper-compiler).
