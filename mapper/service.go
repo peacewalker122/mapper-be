@@ -84,7 +84,7 @@ func WithSourceAdapter(adapter SourceAdapter) Option {
 	return func(service *Service) { service.source = adapter }
 }
 
-func WithImporter(importer Importer) Option {
+func WithImporter[T Importer](importer T) Option {
 	return func(service *Service) { service.importer = importer }
 }
 
