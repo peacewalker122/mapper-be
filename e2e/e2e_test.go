@@ -12,41 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/peacewalker122/mapper/compiler"
 	"github.com/peacewalker122/mapper/executor"
 	"github.com/peacewalker122/mapper/filestore/tempfile"
-	"github.com/peacewalker122/mapper/idgen"
 	"github.com/peacewalker122/mapper/mapper"
 	"github.com/peacewalker122/mapper/mapperhttp"
 	"github.com/peacewalker122/mapper/source/csv"
 )
-
-const e2eSchemaYAML = `version: 1
-
-model:
-  name: subscriber
-
-  fields:
-    - name: phone
-      type: string
-      required: true
-
-    - name: age
-      type: integer
-
-    - name: score
-      type: decimal
-
-    - name: active
-      type: boolean
-
-    - name: joined
-      type: datetime
-
-    - name: status
-      type: string
-      required: true
-`
 
 const e2eCSV = `phone,age,score,active,joined,status
 628123456789,30,9.5,true,2024-01-02T15:04:05Z,ACTIVE
@@ -77,34 +48,18 @@ func (c *collector) all() ([]mapper.Record, []mapper.RowContext) {
 
 func compileE2ESchema(t *testing.T) mapper.Schema {
 	t.Helper()
-	c := &compiler.Compiler{IDGenerator: idgen.NewSequentialIDGenerator(1001)}
-	res, err := c.Compile(compiler.CompileRequest{Source: []byte(e2eSchemaYAML), Package: "generated"})
-	if err != nil {
-		t.Fatalf("compile schema: %v", err)
+	return mapper.Schema{
+		ID:   1001,
+		Name: "subscriber",
+		Fields: []mapper.Field{
+			{ID: 1002, Name: "phone", Type: mapper.TypeString, Required: true},
+			{ID: 1003, Name: "age", Type: mapper.TypeInteger},
+			{ID: 1004, Name: "score", Type: mapper.TypeDecimal},
+			{ID: 1005, Name: "active", Type: mapper.TypeBoolean},
+			{ID: 1006, Name: "joined", Type: mapper.TypeDateTime},
+			{ID: 1007, Name: "status", Type: mapper.TypeString, Required: true},
+		},
 	}
-	out := mapper.Schema{ID: res.Schema.Model.ID, Name: res.Schema.Model.Name}
-	for _, f := range res.Schema.Model.Fields {
-		out.Fields = append(out.Fields, mapper.Field{
-			ID:       f.ID,
-			Name:     f.Name,
-			Type:     mapper.FieldType(f.Type),
-			Required: f.Required,
-		})
-	}
-	if out.ID == 0 {
-		t.Fatal("schema ID is zero")
-	}
-	// Deterministic sequential IDs: schema first, then fields in order.
-	want := map[string]uint64{"phone": 1002, "age": 1003, "score": 1004, "active": 1005, "joined": 1006, "status": 1007}
-	if out.ID != 1001 {
-		t.Fatalf("schema ID = %d, want 1001", out.ID)
-	}
-	for _, f := range out.Fields {
-		if want[f.Name] != f.ID {
-			t.Fatalf("field %s ID = %d, want %d", f.Name, f.ID, want[f.Name])
-		}
-	}
-	return out
 }
 
 func postMultipartCSV(t *testing.T, url, filename, data string) (int, []byte) {

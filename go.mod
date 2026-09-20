@@ -2,10 +2,7 @@ module github.com/peacewalker122/mapper
 
 go 1.26.1
 
-require (
-	github.com/xuri/excelize/v2 v2.10.0
-	gopkg.in/yaml.v3 v3.0.1
-)
+require github.com/xuri/excelize/v2 v2.10.0
 
 require (
 	github.com/richardlehane/mscfb v1.0.4 // indirect
