@@ -20,6 +20,7 @@ type Handler struct {
 	service    *mapper.Service
 	writer     mapper.FileWriter
 	extensions []upload.HTTPUploadExtension
+	suggester  Suggester
 	mux        *http.ServeMux
 }
 
@@ -68,6 +69,8 @@ func New(service *mapper.Service, components ...any) *Handler {
 			if value != nil {
 				value(handler)
 			}
+		case Suggester:
+			handler.suggester = value
 		case mapper.FileWriter:
 			handler.writer = value
 		case mapper.FileStore:
@@ -117,6 +120,7 @@ func (handler *Handler) mount() {
 	handler.mux.Handle(SchemasPath, http.StripPrefix("/schemas", http.HandlerFunc(handler.handleSchema)))
 	handler.mux.Handle(AnalyzePath, http.HandlerFunc(handler.handleAnalyze))
 	handler.mux.Handle(ImportPath, http.HandlerFunc(handler.handleImport))
+	handler.mux.Handle(SuggestPath, http.HandlerFunc(handler.handleSuggest))
 	for _, extension := range handler.extensions {
 		mountExtension(handler.mux, extension)
 	}

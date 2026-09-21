@@ -1,0 +1,196 @@
+openapi: 3.0.3
+info:
+  title: Mapper HTTP API
+  version: 0.1.0
+  description: |
+    HTTP contract for mapper-be. New request and response payloads use
+    `snake_case`. The existing `Schema` response is a legacy exception and
+    currently serializes Go field names in PascalCase (`ID`, `Name`, `Fields`).
+
+paths:
+  /mappings/suggest:
+    post:
+      summary: Suggest source-to-target field mappings
+      operationId: suggestMappings
+      tags:
+        - mappings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuggestMappingsRequest"
+      responses:
+        "200":
+          description: Mapping suggestions produced successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestMappingsResponse"
+        "400":
+          description: The schema ID or source columns are invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalid_schema_id:
+                  value:
+                    error:
+                      code: invalid_schema_id
+                      message: schema_id must be a positive integer
+                invalid_columns:
+                  value:
+                    error:
+                      code: invalid_columns
+                      message: columns must contain at least one column name
+        "404":
+          description: The requested schema does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: schema_not_found
+                  message: schema not found
+        "503":
+          description: The mapping suggester is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: suggester_unavailable
+                  message: mapping suggester is unavailable
+        "502":
+          description: The upstream suggestion service failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: upstream_error
+                  message: upstream suggestion service failed
+
+components:
+  schemas:
+    SuggestMappingsRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_id
+        - columns
+      properties:
+        schema_id:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Unsigned 64-bit target schema ID.
+        columns:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        samples:
+          type: array
+          items:
+            $ref: "#/components/schemas/ColumnSample"
+        options:
+          $ref: "#/components/schemas/SuggestMappingsOptions"
+
+    ColumnSample:
+      type: object
+      additionalProperties: false
+      required:
+        - number
+        - values
+      properties:
+        number:
+          type: integer
+          format: int32
+        values:
+          type: object
+          additionalProperties: true
+
+    SuggestMappingsOptions:
+      type: object
+      additionalProperties: false
+      properties:
+        min_confidence:
+          type: number
+          format: float
+        limit:
+          type: integer
+          format: int32
+
+    SuggestMappingsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - suggestions
+        - model
+      properties:
+        suggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/MappingSuggestion"
+        model:
+          type: string
+
+    MappingSuggestion:
+      type: object
+      additionalProperties: false
+      required:
+        - source
+        - target
+        - confidence
+        - reason
+      properties:
+        source:
+          type: integer
+          format: int32
+        target:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Unsigned 64-bit target field ID.
+        confidence:
+          type: number
+          format: double
+        reason:
+          type: string
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - error
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+
+    ErrorDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - invalid_schema_id
+            - schema_not_found
+            - invalid_columns
+            - suggester_unavailable
+            - upstream_error
+            - invalid_request
+            - method_not_allowed
+            - unsupported_media_type
+            - not_found
+            - service_unavailable
+        message:
+          type: string
